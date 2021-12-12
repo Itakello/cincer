@@ -1,22 +1,24 @@
-import os, requests
+import argparse
+import os
+
+import matplotlib.pyplot as plt
 import numpy as np
+import requests
 import tensorflow as tf
 import tensorflow_probability as tfp
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import precision_recall_fscore_support as prfs
+from sklearn.metrics import roc_auc_score
+from sklearn.utils import Bunch, check_random_state
 from tensorflow import keras
 from tensorflow.keras.callbacks import EarlyStopping
-from influence.influence.influence_model import InfluenceModel
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import roc_auc_score
-from sklearn.metrics import precision_recall_fscore_support as prfs
-from sklearn.utils import check_random_state, Bunch
-import matplotlib.pyplot as plt
-import argparse
 
+from influence.influence.influence_model import InfluenceModel
 from negsup.datasets import *
-from negsup.models import *
-from negsup.utils import *
-from negsup.negotiation import *
 from negsup.fisher import *
+from negsup.models import *
+from negsup.negotiation import *
+from negsup.utils import *
 
 FEW = 100
 
@@ -37,6 +39,133 @@ def prf(p, phat):
 
 
 # ===========================================================================
+
+def sample_counterexamples2(args, if_config):
+    """Sample counter-examples using kNN, IF, and RIF."""
+    rng = np.random.RandomState(args.seed)
+
+    # Build a subsampled noisy dataset
+    dataset = DATASETS[args.dataset]()
+    subsample_train(dataset, args.p_known + args.max_iters, rng=rng)
+    noisy_dataset, noisy, kn, indices = gen_run_data(dataset, args, rng=rng)[0]
+    # noisy_dataset, clean, noisy = inject_noise(args, dataset, rng=rng)
+
+    print(f'{len(kn + indices)} examples, {len(noisy)} are noisy')
+
+    # Train model (or load model trained) on noisy dataset
+    basename = _get_basename(args, model_only=True)
+
+    model = make_model(args.model,
+                       noisy_dataset,
+                       from_logits=args.from_logits)
+    model.fit(noisy_dataset.X_tr[kn],
+              noisy_dataset.y_tr[kn],
+              epochs=args.n_epochs)
+
+    y = np.argmax(dataset.y_tr, axis=1)
+    y_noisy = np.argmax(noisy_dataset.y_tr, axis=1)
+    X = tf.convert_to_tensor(dataset.X_tr)  # XXX work-around for memory leak
+    phat = model.predict(X, batch_size=args.batch_size)
+    yhat = np.argmax(phat, axis=1)
+
+    rows = np.arange(len(y))
+    margins = phat[rows, yhat] - phat[rows, y_noisy]
+
+    # Ordina l'indice delle immagini del training set (immagini più incerte prima), ultime 25
+    temp = 10000
+    uncertain_mistakes = [
+                             i for i in np.argsort(margins)
+                             if y_noisy[i] != yhat[i] and i not in kn
+                         ][:temp]
+    # Ordina l'indice delle immagini del training set (immagini meno incerte prima) 
+    certain_mistakes = [
+                           i for i in np.argsort(margins)
+                           if y_noisy[i] != yhat[i] and i not in kn
+                       ][-temp:]
+
+    selected = uncertain_mistakes + certain_mistakes
+
+    correctIDS = [40, 235]
+    uncorrectIDS = [321, 329]
+    IDS = correctIDS + uncorrectIDS
+
+    for t, i in enumerate(selected):
+        if(i in IDS):
+            fig, axes = plt.subplots(1, 4, figsize=(3.2 * 4, 2.4))
+            fig1, ax1 = plt.subplots(1, 1)
+
+            labeli, labelhati = dataset.class_names[y[i]], dataset.class_names[yhat[i]]
+
+            print(f'EX {i}, "{labeli}" predicted as "{labelhati}" ({margins[i]})')
+
+            axes[0].imshow(dataset.X_tr[i], cmap=plt.get_cmap('gray'))
+            axes[0].set_title(f'True label  "{labeli}"\n'
+                            f'Annotated as "{dataset.class_names[y_noisy[i]]}"\n'
+                            f'Predicted as "{labelhati}"', fontsize=20, pad=15)
+            axes[0].axis('off')
+            ax1.imshow(dataset.X_tr[i], cmap=plt.get_cmap('gray'))
+            ax1.tick_params(axis='both', which='both', bottom=False, left=False,
+                                        right=False, top=False, labelleft=False,
+                                        labelbottom=False)
+
+            negotiators = ['top_fisher', 'nearest', 'if']
+            names = ['CINCER', '1-NN', 'IF']
+            for n, (negotiator, name) in enumerate(zip(negotiators, names)):
+                fig2, ax2 = plt.subplots(1, 1)
+                print(f'{t}/{len(selected)} : running {negotiator}')
+
+                j, _, _ = find_counterexample(model,
+                                            noisy_dataset,
+                                            kn, i,
+                                            negotiator,
+                                            if_config,
+                                            rng=rng)
+
+                assert j in kn and j != i
+
+                labelj, labeltildej = dataset.class_names[y[j]], dataset.class_names[
+                    y_noisy[j]]
+
+                print(
+                    f'{t}/{len(selected)} : EX {i}, {negotiator} picked {j}, annotatated "{labeltildej}" (actually "{labelj}")')
+                ax2.imshow(dataset.X_tr[j], cmap=plt.get_cmap('gray'))
+                ax2.tick_params(axis='both', which='both', bottom=False, left=False,
+                                        right=False, top=False, labelleft=False,
+                                        labelbottom=False)
+                axes[n + 1].imshow(dataset.X_tr[j], cmap=plt.get_cmap('gray'))
+                axes[n + 1].set_title(f'True label "{labelj}"\n'
+                                    f'Annotated as "{labeltildej}"', fontsize=20, pad=15)
+
+                axes[n + 1].set_xlabel(name, fontsize=20, labelpad=15)
+                axes[n + 1].tick_params(axis='both', which='both', bottom=False, left=False,
+                                        right=False, top=False, labelleft=False,
+                                        labelbottom=False)
+                if(i in correctIDS):
+                    fig2.savefig(os.path.join('images\correct', f'{i}__{t}__{name}.png'),
+                            bbox_inches='tight',
+                            pad_inches=0.3)
+                else:
+                    fig2.savefig(os.path.join('images\incorrect', f'{i}__{t}__{name}.png'),
+                            bbox_inches='tight',
+                            pad_inches=0.3)
+                plt.close(fig2)
+            
+            if(i in correctIDS):
+                fig.savefig(os.path.join('images\correct', f'{i}__{t}.png'),
+                            bbox_inches='tight',
+                            pad_inches=0.3)
+                fig1.savefig(os.path.join('images\correct', f'{i}__{t}_M.png'),
+                            bbox_inches='tight',
+                            pad_inches=0.3)
+            else:
+                fig.savefig(os.path.join('images\incorrect', f'{i}__{t}.png'),
+                            bbox_inches='tight',
+                            pad_inches=0.3)
+                fig1.savefig(os.path.join('images\incorrect', f'{i}__{t}_M.png'),
+                            bbox_inches='tight',
+                            pad_inches=0.3)
+            plt.close(fig)
+            plt.close(fig1)
 
 
 def sample_counterexamples(args, if_config):
@@ -76,36 +205,43 @@ def sample_counterexamples(args, if_config):
     rows = np.arange(len(y))
     margins = phat[rows, yhat] - phat[rows, y_noisy]
 
+    # Ordina l'indice delle immagini del training set (immagini più incerte prima), ultime 25
+    temp = 10000
     uncertain_mistakes = [
                              i for i in np.argsort(margins)
                              if y_noisy[i] != yhat[i] and i not in kn
-                         ][:FEW // 4]
-
+                         ][:temp]
+    # Ordina l'indice delle immagini del training set (immagini meno incerte prima) 
     certain_mistakes = [
                            i for i in np.argsort(margins)
                            if y_noisy[i] != yhat[i] and i not in kn
-                       ][-FEW // 4:]
+                       ][-temp:]
 
     selected = uncertain_mistakes + certain_mistakes
 
     # Dump the images and their counter-examples using kNN, IF, IF+kNN
-    basename = _get_basename(args)
     for t, i in enumerate(selected):
         fig, axes = plt.subplots(1, 4, figsize=(3.2 * 4, 2.4))
+        #fig1, ax1 = plt.subplots(1)
 
         labeli, labelhati = dataset.class_names[y[i]], dataset.class_names[yhat[i]]
 
         print(f'EX {i}, "{labeli}" predicted as "{labelhati}" ({margins[i]})')
 
         axes[0].imshow(dataset.X_tr[i], cmap=plt.get_cmap('gray'))
+        #ax1.imshow(dataset.X_tr[i], cmap=plt.get_cmap('gray'))
         axes[0].set_title(f'True label  "{labeli}"\n'
                           f'Annotated as "{dataset.class_names[y_noisy[i]]}"\n'
                           f'Predicted as "{labelhati}"', fontsize=20, pad=15)
         axes[0].axis('off')
+        #ax1.axis('off')
 
-        negotiators = ['top_fisher', 'nearest', 'if']
-        names = ['CINCER', '1-NN', 'IF']
-        for n, (negotiator, name) in enumerate(zip(negotiators, names)):
+        #negotiators = ['top_fisher', 'nearest', 'if']
+        #names = ['CINCER', '1-NN', 'IF']
+        negotiators = ['nearest', 'if']
+        names = ['1-NN', 'IF']
+
+        """ for n, (negotiator, name) in enumerate(zip(negotiators, names)):
             print(f'{t}/{len(selected)} : running {negotiator}')
 
             j, _, _ = find_counterexample(model,
@@ -130,13 +266,16 @@ def sample_counterexamples(args, if_config):
             axes[n + 1].set_xlabel(name, fontsize=20, labelpad=15)
             axes[n + 1].tick_params(axis='both', which='both', bottom=False, left=False,
                                     right=False, top=False, labelleft=False,
-                                    labelbottom=False)
-            # axes[n + 1].axis('off')
+                                    labelbottom=False) """
 
-        fig.savefig(os.path.join('images', basename + f'__{t}.png'),
+        fig.savefig(os.path.join('images', f'{i}__{t}.png'),
                     bbox_inches='tight',
                     pad_inches=0.3)
+        ##fig1.savefig(os.path.join('images', f'{i}__{t}__Main.png'),
+        ##            bbox_inches='tight',
+        ##            pad_inches=0.3)
         plt.close(fig)
+        ##plt.close(fig1)
 
 
 # ===========================================================================
@@ -858,7 +997,7 @@ def main():
     # if args.question == 'q1':
     #    eval_identification(args, if_config)
     # elif args.question == 'q2':
-    #    sample_counterexamples(args, if_config)
+    sample_counterexamples2(args, if_config)
     # elif args.question == 'find-threshold':
     #     find_threshold(args, if_config)
     # elif args.question == 'eval-influence':
@@ -866,7 +1005,7 @@ def main():
     # else:
     #    raise ValueError('invalid question')
 
-    eval_negotiation(args, if_config)
+    #eval_negotiation(args, if_config)
 
 
 if __name__ == '__main__':
