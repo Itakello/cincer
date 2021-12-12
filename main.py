@@ -48,12 +48,10 @@ def sample_counterexamples2(args, if_config):
     dataset = DATASETS[args.dataset]()
     subsample_train(dataset, args.p_known + args.max_iters, rng=rng)
     noisy_dataset, noisy, kn, indices = gen_run_data(dataset, args, rng=rng)[0]
-    # noisy_dataset, clean, noisy = inject_noise(args, dataset, rng=rng)
 
     print(f'{len(kn + indices)} examples, {len(noisy)} are noisy')
 
     # Train model (or load model trained) on noisy dataset
-    basename = _get_basename(args, model_only=True)
 
     model = make_model(args.model,
                        noisy_dataset,
@@ -86,8 +84,8 @@ def sample_counterexamples2(args, if_config):
     selected = uncertain_mistakes + certain_mistakes
 
     correctIDS = [40, 235]
-    uncorrectIDS = [321, 329]
-    IDS = correctIDS + uncorrectIDS
+    incorrectIDS = [321, 329]
+    IDS = correctIDS + incorrectIDS
 
     for t, i in enumerate(selected):
         if(i in IDS):
@@ -141,27 +139,27 @@ def sample_counterexamples2(args, if_config):
                                         right=False, top=False, labelleft=False,
                                         labelbottom=False)
                 if(i in correctIDS):
-                    fig2.savefig(os.path.join('images\correct', f'{i}__{t}__{name}.png'),
+                    fig2.savefig(os.path.join('images/correct', f'{i}__{t}__{name}.png'),
                             bbox_inches='tight',
                             pad_inches=0.3)
                 else:
-                    fig2.savefig(os.path.join('images\incorrect', f'{i}__{t}__{name}.png'),
+                    fig2.savefig(os.path.join('images/incorrect', f'{i}__{t}__{name}.png'),
                             bbox_inches='tight',
                             pad_inches=0.3)
                 plt.close(fig2)
             
             if(i in correctIDS):
-                fig.savefig(os.path.join('images\correct', f'{i}__{t}.png'),
+                fig.savefig(os.path.join('images/correct', f'{i}__{t}.png'),
                             bbox_inches='tight',
                             pad_inches=0.3)
-                fig1.savefig(os.path.join('images\correct', f'{i}__{t}_M.png'),
+                fig1.savefig(os.path.join('images/correct', f'{i}__{t}_M.png'),
                             bbox_inches='tight',
                             pad_inches=0.3)
             else:
-                fig.savefig(os.path.join('images\incorrect', f'{i}__{t}.png'),
+                fig.savefig(os.path.join('images/incorrect', f'{i}__{t}.png'),
                             bbox_inches='tight',
                             pad_inches=0.3)
-                fig1.savefig(os.path.join('images\incorrect', f'{i}__{t}_M.png'),
+                fig1.savefig(os.path.join('images/incorrect', f'{i}__{t}_M.png'),
                             bbox_inches='tight',
                             pad_inches=0.3)
             plt.close(fig)
@@ -180,8 +178,6 @@ def sample_counterexamples(args, if_config):
 
     print(f'{len(kn + indices)} examples, {len(noisy)} are noisy')
 
-    # Train model (or load model trained) on noisy dataset
-    basename = _get_basename(args, model_only=True)
     # model_path = os.path.join('model-cache', basename)
     # model = make_or_load_model(model_path,
     #                            args.model,
