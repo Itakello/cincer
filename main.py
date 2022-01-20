@@ -83,75 +83,64 @@ def sample_counterexamples2(args, if_config):
 
     selected = uncertain_mistakes + certain_mistakes
 
-    correctIDS = [40] #, 235]
-    incorrectIDS = [321] #, 329]
-    IDS = correctIDS + incorrectIDS
-
     for t, i in enumerate(selected):
-        if(i in IDS):
-            fig, axes = plt.subplots(1, 4, figsize=(3.2 * 4, 2.4))
-            fig1, ax1 = plt.subplots(1, 1)
+        fig, axes = plt.subplots(1, 4, figsize=(3.2 * 4, 2.4))
+        fig1, ax1 = plt.subplots(1, 1)
 
-            labeli, labelhati = dataset.class_names[y[i]], dataset.class_names[yhat[i]]
+        labeli, labelhati = dataset.class_names[y[i]], dataset.class_names[yhat[i]]
 
-            print(f'EX {i}, "{labeli}" predicted as "{labelhati}" ({margins[i]})')
+        print(f'EX {i}, "{labeli}" predicted as "{labelhati}" ({margins[i]})')
 
-            axes[0].imshow(dataset.X_tr[i], cmap=plt.get_cmap('gray'))
-            axes[0].set_title(f'True label  "{labeli}"\n'
-                            f'Annotated as "{dataset.class_names[y_noisy[i]]}"\n'
-                            f'Predicted as "{labelhati}"', fontsize=20, pad=15)
-            axes[0].axis('off')
-            ax1.imshow(dataset.X_tr[i], cmap=plt.get_cmap('gray'))
-            ax1.tick_params(axis='both', which='both', bottom=False, left=False,
-                                        right=False, top=False, labelleft=False,
-                                        labelbottom=False)
+        correct = bool(labeli == labelhati)
 
-            negotiators = ['top_fisher', 'nearest', 'if']
-            names = ['CINCER', '1-NN', 'IF']
-            for n, (negotiator, name) in enumerate(zip(negotiators, names)):
-                fig2, ax2 = plt.subplots(1, 1)
-                print(f'{t}/{len(selected)} : running {negotiator}')
+        axes[0].imshow(dataset.X_tr[i], cmap=plt.get_cmap('gray'))
+        axes[0].set_title(f'True label  "{labeli}"\n'
+                        f'Annotated as "{dataset.class_names[y_noisy[i]]}"\n'
+                        f'Predicted as "{labelhati}"', fontsize=20, pad=15)
+        axes[0].axis('off')
+        ax1.imshow(dataset.X_tr[i], cmap=plt.get_cmap('gray'))
+        ax1.tick_params(axis='both', which='both', bottom=False, left=False,
+                                    right=False, top=False, labelleft=False,
+                                    labelbottom=False)
 
-                j, _, _ = find_counterexample(model,
-                                            noisy_dataset,
-                                            kn, i,
-                                            negotiator,
-                                            if_config,
-                                            rng=rng)
+        negotiators = ['top_fisher', 'nearest', 'if']
+        names = ['CINCER', '1-NN', 'IF']
+        for n, (negotiator, name) in enumerate(zip(negotiators, names)):
+            fig2, ax2 = plt.subplots(1, 1)
+            print(f'{t}/{len(selected)} : running {negotiator}')
 
-                assert j in kn and j != i
+            j, _, _ = find_counterexample(model,
+                                        noisy_dataset,
+                                        kn, i,
+                                        negotiator,
+                                        if_config,
+                                        rng=rng)
 
-                labelj, labeltildej = dataset.class_names[y[j]], dataset.class_names[
-                    y_noisy[j]]
+            assert j in kn and j != i
 
-                print(
-                    f'{t}/{len(selected)} : EX {i}, {negotiator} picked {j}, annotatated "{labeltildej}" (actually "{labelj}")')
-                ax2.imshow(dataset.X_tr[j], cmap=plt.get_cmap('gray'))
-                ax2.tick_params(axis='both', which='both', bottom=False, left=False,
-                                        right=False, top=False, labelleft=False,
-                                        labelbottom=False)
-                axes[n + 1].imshow(dataset.X_tr[j], cmap=plt.get_cmap('gray'))
-                axes[n + 1].set_title(f'True label "{labelj}"\n'
-                                    f'Annotated as "{labeltildej}"', fontsize=20, pad=15)
+            labelj, labeltildej = dataset.class_names[y[j]], dataset.class_names[
+                y_noisy[j]]
 
-                axes[n + 1].set_xlabel(name, fontsize=20, labelpad=15)
-                axes[n + 1].tick_params(axis='both', which='both', bottom=False, left=False,
-                                        right=False, top=False, labelleft=False,
-                                        labelbottom=False)
-                if(i in correctIDS):
-                    save_image(fig2, True, i, t, name);
-                else:
-                    save_image(fig2, False, i, t, name);
-                plt.close(fig2)
-            
-            if(i in correctIDS):
-                save_image(fig, True, i, t, 'def')
-                save_image(fig1, True, i, t, 'M')
-            else:
-                save_image(fig, False, i, t, 'def')
-                save_image(fig1, False, i, t, 'M')
-            plt.close(fig)
-            plt.close(fig1)
+            print(
+                f'{t}/{len(selected)} : EX {i}, {negotiator} picked {j}, annotatated "{labeltildej}" (actually "{labelj}")')
+            ax2.imshow(dataset.X_tr[j], cmap=plt.get_cmap('gray'))
+            ax2.tick_params(axis='both', which='both', bottom=False, left=False,
+                                    right=False, top=False, labelleft=False,
+                                    labelbottom=False)
+            axes[n + 1].imshow(dataset.X_tr[j], cmap=plt.get_cmap('gray'))
+            axes[n + 1].set_title(f'True label "{labelj}"\n'
+                                f'Annotated as "{labeltildej}"', fontsize=20, pad=15)
+
+            axes[n + 1].set_xlabel(name, fontsize=20, labelpad=15)
+            axes[n + 1].tick_params(axis='both', which='both', bottom=False, left=False,
+                                    right=False, top=False, labelleft=False,
+                                    labelbottom=False)
+            save_image(fig2, correct, i, t, name);
+        
+        save_image(fig, correct, i, t, 'def')
+        save_image(fig1, correct, i, t, 'M')
+        plt.close(fig)
+        plt.close(fig1)
 
 def save_image(fig, corr, i, t, img_name):
     if(corr == True):
@@ -162,8 +151,8 @@ def save_image(fig, corr, i, t, img_name):
     if(not os.path.exists(path)):
         os.makedirs(path)
         print("New directory created: "+ path)
-    fig.savefig(os.path.join(path, f'{img_name}.png',
-                bbox_inces='tight'),
+    fig.savefig(os.path.join(path, f'{img_name}.png'),
+                bbox_inches='tight',
                 pad_inches=0.3)
 
 def sample_counterexamples(args, if_config):
