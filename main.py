@@ -83,8 +83,8 @@ def sample_counterexamples2(args, if_config):
 
     selected = uncertain_mistakes + certain_mistakes
 
-    correctIDS = [40, 235]
-    incorrectIDS = [321, 329]
+    correctIDS = [40] #, 235]
+    incorrectIDS = [321] #, 329]
     IDS = correctIDS + incorrectIDS
 
     for t, i in enumerate(selected):
@@ -139,32 +139,32 @@ def sample_counterexamples2(args, if_config):
                                         right=False, top=False, labelleft=False,
                                         labelbottom=False)
                 if(i in correctIDS):
-                    fig2.savefig(os.path.join('images/correct', f'{i}__{t}__{name}.png'),
-                            bbox_inches='tight',
-                            pad_inches=0.3)
+                    save_image(fig2, True, i, t, name);
                 else:
-                    fig2.savefig(os.path.join('images/incorrect', f'{i}__{t}__{name}.png'),
-                            bbox_inches='tight',
-                            pad_inches=0.3)
+                    save_image(fig2, False, i, t, name);
                 plt.close(fig2)
             
             if(i in correctIDS):
-                fig.savefig(os.path.join('images/correct', f'{i}__{t}.png'),
-                            bbox_inches='tight',
-                            pad_inches=0.3)
-                fig1.savefig(os.path.join('images/correct', f'{i}__{t}_M.png'),
-                            bbox_inches='tight',
-                            pad_inches=0.3)
+                save_image(fig, True, i, t, 'def')
+                save_image(fig1, True, i, t, 'M')
             else:
-                fig.savefig(os.path.join('images/incorrect', f'{i}__{t}.png'),
-                            bbox_inches='tight',
-                            pad_inches=0.3)
-                fig1.savefig(os.path.join('images/incorrect', f'{i}__{t}_M.png'),
-                            bbox_inches='tight',
-                            pad_inches=0.3)
+                save_image(fig, False, i, t, 'def')
+                save_image(fig1, False, i, t, 'M')
             plt.close(fig)
             plt.close(fig1)
 
+def save_image(fig, corr, i, t, img_name):
+    if(corr == True):
+        path = 'images/correct'
+    else:
+        path = 'images/incorrect'
+    path = path + f'/{i}__{t}'
+    if(not os.path.exists(path)):
+        os.makedirs(path)
+        print("New directory created: "+ path)
+    fig.savefig(os.path.join(path, f'{img_name}.png',
+                bbox_inces='tight'),
+                pad_inches=0.3)
 
 def sample_counterexamples(args, if_config):
     """Sample counter-examples using kNN, IF, and RIF."""
