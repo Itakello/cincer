@@ -135,10 +135,10 @@ def sample_counterexamples2(args, if_config):
             axes[n + 1].tick_params(axis='both', which='both', bottom=False, left=False,
                                     right=False, top=False, labelleft=False,
                                     labelbottom=False)
-            save_image(fig2, correct, i, t, name);
+            save_image(fig2, correct, i, t, name, labelj, labeltildej);
         
         save_image(fig, correct, i, t, 'Total')
-        save_image(fig1, correct, i, t, 'Main', labeli, dataset.class_names[y_noisy[i]], )
+        save_image(fig1, correct, i, t, 'Main', labeli, dataset.class_names[y_noisy[i]], labelhati)
         plt.close(fig)
         plt.close(fig1)
 
