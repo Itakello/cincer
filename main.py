@@ -137,12 +137,12 @@ def sample_counterexamples2(args, if_config):
                                     labelbottom=False)
             save_image(fig2, correct, i, t, name);
         
-        save_image(fig, correct, i, t, 'def')
-        save_image(fig1, correct, i, t, 'M')
+        save_image(fig, correct, i, t, 'Total')
+        save_image(fig1, correct, i, t, 'Main', labeli, dataset.class_names[y_noisy[i]], )
         plt.close(fig)
         plt.close(fig1)
 
-def save_image(fig, corr, i, t, img_name):
+def save_image(fig, corr, i, t, img_name, true_lab=-1, annot=-1, pred=-1):
     if(corr == True):
         path = 'images/correct'
     else:
@@ -151,6 +151,12 @@ def save_image(fig, corr, i, t, img_name):
     if(not os.path.exists(path)):
         os.makedirs(path)
         print("New directory created: "+ path)
+    if(true_lab != -1):
+        img_name = img_name + "_T" + true_lab;
+    if(annot != -1):
+        img_name = img_name + "A" + annot;
+    if(pred != -1):
+        img_name = img_name + "P" + pred;
     fig.savefig(os.path.join(path, f'{img_name}.png'),
                 bbox_inches='tight',
                 pad_inches=0.3)
