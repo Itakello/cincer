@@ -1,7 +1,6 @@
 results
 *.pickle
 influence
-images
 old_scripts
 plot_eval_if.sh
 telegram_notification.py
