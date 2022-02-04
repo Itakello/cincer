@@ -7,6 +7,7 @@ import numpy as np
 import requests
 import tensorflow as tf
 import tensorflow_probability as tfp
+from matplotlib.gridspec import GridSpec
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import precision_recall_fscore_support as prfs
 from sklearn.metrics import roc_auc_score
@@ -86,7 +87,6 @@ def sample_counterexamples2(args, if_config):
 
     for t, i in enumerate(selected):
         fig, axes = plt.subplots(1, 4, figsize=(3.2 * 4, 2.4))
-        fig1, ax1 = plt.subplots(1, 1)
 
         labeli, labelhati = dataset.class_names[y[i]], dataset.class_names[yhat[i]]
 
@@ -99,15 +99,10 @@ def sample_counterexamples2(args, if_config):
                         f'Annotated as "{dataset.class_names[y_noisy[i]]}"\n'
                         f'Predicted as "{labelhati}"', fontsize=20, pad=15)
         axes[0].axis('off')
-        ax1.imshow(dataset.X_tr[i], cmap=plt.get_cmap('gray'))
-        ax1.tick_params(axis='both', which='both', bottom=False, left=False,
-                                    right=False, top=False, labelleft=False,
-                                    labelbottom=False)
 
         negotiators = ['top_fisher', 'nearest', 'if']
         names = ['CINCER', '1-NN', 'IF']
         for n, (negotiator, name) in enumerate(zip(negotiators, names)):
-            fig2, ax2 = plt.subplots(1, 1)
             print(f'{t}/{len(selected)} : running {negotiator}')
 
             j, _, _ = find_counterexample(model,
@@ -124,10 +119,6 @@ def sample_counterexamples2(args, if_config):
 
             print(
                 f'{t}/{len(selected)} : EX {i}, {negotiator} picked {j}, annotatated "{labeltildej}" (actually "{labelj}")')
-            ax2.imshow(dataset.X_tr[j], cmap=plt.get_cmap('gray'))
-            ax2.tick_params(axis='both', which='both', bottom=False, left=False,
-                                    right=False, top=False, labelleft=False,
-                                    labelbottom=False)
             axes[n + 1].imshow(dataset.X_tr[j], cmap=plt.get_cmap('gray'))
             axes[n + 1].set_title(f'True label "{labelj}"\n'
                                 f'Annotated as "{labeltildej}"', fontsize=20, pad=15)
@@ -136,12 +127,9 @@ def sample_counterexamples2(args, if_config):
             axes[n + 1].tick_params(axis='both', which='both', bottom=False, left=False,
                                     right=False, top=False, labelleft=False,
                                     labelbottom=False)
-            save_image(fig2, correct, i, t, name, labelj, labeltildej);
         
         save_image(fig, correct, i, t, 'Total')
-        save_image(fig1, correct, i, t, 'Main', labeli, dataset.class_names[y_noisy[i]], labelhati)
         plt.close(fig)
-        plt.close(fig1)
 
 def save_image(fig, corr, i, t, img_name, true_lab=-1, annot=-1, pred=-1):
     if(corr == True):
@@ -214,7 +202,7 @@ def sample_counterexamples(args, if_config):
     # Dump the images and their counter-examples using kNN, IF, IF+kNN
     for t, i in enumerate(selected):
         fig, axes = plt.subplots(1, 4, figsize=(3.2 * 4, 2.4))
-        #fig1, ax1 = plt.subplots(1)
+
 
         labeli, labelhati = dataset.class_names[y[i]], dataset.class_names[yhat[i]]
 
@@ -263,11 +251,7 @@ def sample_counterexamples(args, if_config):
         fig.savefig(os.path.join('images', f'{i}__{t}.png'),
                     bbox_inches='tight',
                     pad_inches=0.3)
-        ##fig1.savefig(os.path.join('images', f'{i}__{t}__Main.png'),
-        ##            bbox_inches='tight',
-        ##            pad_inches=0.3)
         plt.close(fig)
-        ##plt.close(fig1)
 
 
 # ===========================================================================
@@ -989,7 +973,8 @@ def main():
     # if args.question == 'q1':
     #    eval_identification(args, if_config)
     # elif args.question == 'q2':
-    sample_counterexamples2(args, if_config)
+    # sample_counterexamples2(args, if_config)
+    testLayout()
     # elif args.question == 'find-threshold':
     #     find_threshold(args, if_config)
     # elif args.question == 'eval-influence':
