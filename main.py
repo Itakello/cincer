@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import os
+from cProfile import label
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -91,13 +92,14 @@ def sample_counterexamples2(args, if_config):
         labeli, labelhati = dataset.class_names[y[i]], dataset.class_names[yhat[i]]
 
         print(f'EX {i}, "{labeli}" predicted as "{labelhati}" ({margins[i]})')
+        img_name = f'{labeli}{dataset.class_names[y_noisy[i]]}{labelhati}'
 
         correct = bool(labeli == labelhati)
 
+        imgs = []
+        labels = []
         axes[0].imshow(dataset.X_tr[i], cmap=plt.get_cmap('gray'))
-        axes[0].set_title(f'True label  "{labeli}"\n'
-                        f'Annotated as "{dataset.class_names[y_noisy[i]]}"\n'
-                        f'Predicted as "{labelhati}"', fontsize=20, pad=15)
+        axes[0].set_title(f'Example', fontsize=30, pad=15)
         axes[0].axis('off')
 
         negotiators = ['top_fisher', 'nearest', 'if']
@@ -119,19 +121,20 @@ def sample_counterexamples2(args, if_config):
 
             print(
                 f'{t}/{len(selected)} : EX {i}, {negotiator} picked {j}, annotatated "{labeltildej}" (actually "{labelj}")')
-            axes[n + 1].imshow(dataset.X_tr[j], cmap=plt.get_cmap('gray'))
-            axes[n + 1].set_title(f'True label "{labelj}"\n'
-                                f'Annotated as "{labeltildej}"', fontsize=20, pad=15)
+            imgs.append(dataset.X_tr[j])
+            # axes[n + 1].imshow(dataset.X_tr[j], cmap=plt.get_cmap('gray'))
+            labels.append(name[0]+labelj+labeltildej)
+            axes[n + 1].set_title(f'Counterexample', fontsize=20, pad=15)
 
-            axes[n + 1].set_xlabel(name, fontsize=20, labelpad=15)
+            #axes[n + 1].set_xlabel(name, fontsize=20, labelpad=15)
             axes[n + 1].tick_params(axis='both', which='both', bottom=False, left=False,
                                     right=False, top=False, labelleft=False,
                                     labelbottom=False)
         
-        save_image(fig, correct, i, t, 'Total')
+        save_image(fig, axes, correct, i, t, imgs, labels, img_name)
         plt.close(fig)
 
-def save_image(fig, corr, i, t, img_name, true_lab=-1, annot=-1, pred=-1):
+def save_image(fig, axes, corr, i, t, imgs, labels, img_name):
     if(corr == True):
         path = 'images/correct'
     else:
@@ -140,15 +143,20 @@ def save_image(fig, corr, i, t, img_name, true_lab=-1, annot=-1, pred=-1):
     if(not os.path.exists(path)):
         os.makedirs(path)
         print("New directory created: "+ path)
-    if(true_lab != -1):
-        img_name = img_name + "_T" + true_lab;
-    if(annot != -1):
-        img_name = img_name + "A" + annot;
-    if(pred != -1):
-        img_name = img_name + "P" + pred;
-    fig.savefig(os.path.join(path, f'{img_name}.png'),
-                bbox_inches='tight',
-                pad_inches=0.3)
+    axes[1].set_xlabel(f'#1', fontsize=20, labelpad=15)
+    axes[2].set_xlabel(f'#2', fontsize=20, labelpad=15)
+    axes[3].set_xlabel(f'#3', fontsize=20, labelpad=15)
+    for i in range(3) :
+        for j in range(3) :
+            if(j!=i):
+                for k in range(3) :
+                    if(k!=i and k!=j):
+                        axes[1].imshow(imgs[i], cmap=plt.get_cmap('gray'))
+                        axes[2].imshow(imgs[j], cmap=plt.get_cmap('gray'))
+                        axes[3].imshow(imgs[k], cmap=plt.get_cmap('gray'))
+                        fig.savefig(os.path.join(path, f'{img_name}_{labels[i]}_{labels[j]}_{labels[k]}.png'),
+                            bbox_inches='tight',
+                            pad_inches=0.3)
 
 def sample_counterexamples(args, if_config):
     """Sample counter-examples using kNN, IF, and RIF."""
@@ -973,8 +981,8 @@ def main():
     # if args.question == 'q1':
     #    eval_identification(args, if_config)
     # elif args.question == 'q2':
-    # sample_counterexamples2(args, if_config)
-    testLayout()
+    sample_counterexamples2(args, if_config)
+    #testLayout()
     # elif args.question == 'find-threshold':
     #     find_threshold(args, if_config)
     # elif args.question == 'eval-influence':
