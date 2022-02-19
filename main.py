@@ -99,11 +99,12 @@ def sample_counterexamples2(args, if_config):
         imgs = []
         labels = []
         axes[0].imshow(dataset.X_tr[i], cmap=plt.get_cmap('gray'))
-        axes[0].set_title(f'Example', fontsize=30, pad=15)
+        axes[0].set_title(f'The machine \nthinks it\'s a "{labelhati}".', fontsize=15, pad=15)
         axes[0].axis('off')
 
         negotiators = ['top_fisher', 'nearest', 'if']
         names = ['CINCER', '1-NN', 'IF']
+
         for n, (negotiator, name) in enumerate(zip(negotiators, names)):
             print(f'{t}/{len(selected)} : running {negotiator}')
 
@@ -124,13 +125,16 @@ def sample_counterexamples2(args, if_config):
             imgs.append(dataset.X_tr[j])
             # axes[n + 1].imshow(dataset.X_tr[j], cmap=plt.get_cmap('gray'))
             labels.append(name[0]+labelj+labeltildej)
-            axes[n + 1].set_title(f'Counterexample', fontsize=20, pad=15)
+            # axes[n + 1].set_title(f'Counterexample', fontsize=20, pad=15)
 
             #axes[n + 1].set_xlabel(name, fontsize=20, labelpad=15)
             axes[n + 1].tick_params(axis='both', which='both', bottom=False, left=False,
                                     right=False, top=False, labelleft=False,
                                     labelbottom=False)
         
+        axes[2].set_title(f'Supporting examples', fontsize=25, pad=25)
+        line = plt.Line2D((.31, .31),(.0, 1), color="k", linewidth=3)
+        fig.add_artist(line)
         save_image(fig, axes, correct, i, t, imgs, labels, img_name)
         plt.close(fig)
 
