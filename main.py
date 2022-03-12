@@ -88,6 +88,7 @@ def sample_counterexamples2(args, if_config):
 
     for t, i in enumerate(selected):
         fig, axes = plt.subplots(1, 4, figsize=(3.2 * 4, 2.4))
+        fig1, axes1 = plt.subplots(1, 4, figsize=(3.2 * 4, 2.4))
 
         labeli, labelhati = dataset.class_names[y[i]], dataset.class_names[yhat[i]]
 
@@ -101,6 +102,13 @@ def sample_counterexamples2(args, if_config):
         axes[0].imshow(dataset.X_tr[i], cmap=plt.get_cmap('gray'))
         axes[0].set_title(f'The machine \nthinks it\'s a "{labelhati}".', fontsize=15, pad=15)
         axes[0].axis('off')
+
+        axes1[0].imshow(dataset.X_tr[i], cmap=plt.get_cmap('gray'))
+        #ax1.imshow(dataset.X_tr[i], cmap=plt.get_cmap('gray'))
+        axes1[0].set_title(f'True label  "{labeli}"\n'
+                          f'Annotated as "{dataset.class_names[y_noisy[i]]}"\n'
+                          f'Predicted as "{labelhati}"', fontsize=20, pad=15)
+        axes1[0].axis('off')
 
         negotiators = ['top_fisher', 'nearest', 'if']
         names = ['CINCER', '1-NN', 'IF']
@@ -123,22 +131,29 @@ def sample_counterexamples2(args, if_config):
             print(
                 f'{t}/{len(selected)} : EX {i}, {negotiator} picked {j}, annotatated "{labeltildej}" (actually "{labelj}")')
             imgs.append(dataset.X_tr[j])
-            # axes[n + 1].imshow(dataset.X_tr[j], cmap=plt.get_cmap('gray'))
             labels.append(name[0]+labelj+labeltildej)
-            # axes[n + 1].set_title(f'Counterexample', fontsize=20, pad=15)
 
-            #axes[n + 1].set_xlabel(name, fontsize=20, labelpad=15)
             axes[n + 1].tick_params(axis='both', which='both', bottom=False, left=False,
+                                    right=False, top=False, labelleft=False,
+                                    labelbottom=False)
+            
+            axes1[n + 1].imshow(dataset.X_tr[j], cmap=plt.get_cmap('gray'))
+            axes1[n + 1].set_title(f'True label "{labelj}"\n'
+                                  f'Annotated as "{labeltildej}"', fontsize=20, pad=15)
+
+            axes1[n + 1].set_xlabel(name, fontsize=20, labelpad=15)
+            axes1[n + 1].tick_params(axis='both', which='both', bottom=False, left=False,
                                     right=False, top=False, labelleft=False,
                                     labelbottom=False)
         
         axes[2].set_title(f'Supporting examples', fontsize=25, pad=25)
         line = plt.Line2D((.31, .31),(.0, 1), color="k", linewidth=3)
         fig.add_artist(line)
-        save_image(fig, axes, correct, i, t, imgs, labels, img_name)
+        save_image(fig, axes, fig1, correct, i, t, imgs, labels, img_name)
         plt.close(fig)
+        plt.close(fig1)
 
-def save_image(fig, axes, corr, i, t, imgs, labels, img_name):
+def save_image(fig, axes,fig1, corr, i, t, imgs, labels, img_name):
     if(corr == True):
         path = 'images/correct'
     else:
@@ -150,6 +165,8 @@ def save_image(fig, axes, corr, i, t, imgs, labels, img_name):
     axes[1].set_xlabel(f'#1', fontsize=20, labelpad=15)
     axes[2].set_xlabel(f'#2', fontsize=20, labelpad=15)
     axes[3].set_xlabel(f'#3', fontsize=20, labelpad=15)
+    fig1.savefig(os.path.join(path, f'{img_name}_main.png'),
+        bbox_inches='tight',pad_inches=0.3)
     for i in range(3) :
         for j in range(3) :
             if(j!=i):
@@ -233,7 +250,7 @@ def sample_counterexamples(args, if_config):
         negotiators = ['nearest', 'if']
         names = ['1-NN', 'IF']
 
-        """ for n, (negotiator, name) in enumerate(zip(negotiators, names)):
+        for n, (negotiator, name) in enumerate(zip(negotiators, names)):
             print(f'{t}/{len(selected)} : running {negotiator}')
 
             j, _, _ = find_counterexample(model,
@@ -258,7 +275,7 @@ def sample_counterexamples(args, if_config):
             axes[n + 1].set_xlabel(name, fontsize=20, labelpad=15)
             axes[n + 1].tick_params(axis='both', which='both', bottom=False, left=False,
                                     right=False, top=False, labelleft=False,
-                                    labelbottom=False) """
+                                    labelbottom=False)
 
         fig.savefig(os.path.join('images', f'{i}__{t}.png'),
                     bbox_inches='tight',
