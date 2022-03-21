@@ -133,10 +133,6 @@ def sample_counterexamples2(args, if_config):
             imgs.append(dataset.X_tr[j])
             labels.append(name[0]+labelj+labeltildej)
 
-<<<<<<< HEAD
-            # axes[n + 1].set_xlabel(name, fontsize=20, labelpad=15)
-=======
->>>>>>> 670f9faea85d692ac884fb6adb5bc9b5bf390c7e
             axes[n + 1].tick_params(axis='both', which='both', bottom=False, left=False,
                                     right=False, top=False, labelleft=False,
                                     labelbottom=False)
@@ -159,15 +155,9 @@ def sample_counterexamples2(args, if_config):
 
 def save_image(fig, axes,fig1, corr, i, t, imgs, labels, img_name):
     if(corr == True):
-        if(i in [1512,1732,2087]):
-            path = 'images/corr_amb'
-        else:
-            path = 'images/corr_unamb'
+        path = 'images/correct'
     else:
-        if(i in [321,930,1090,1255,1276,1413,1869,1882]):
-            path = 'images/incorr_amb'
-        else:
-            path  = 'images/incorr_unamb'
+        path = 'images/incorrect'
     path = path + f'/{i}__{t}'
     if(not os.path.exists(path)):
         os.makedirs(path)
