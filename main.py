@@ -146,7 +146,7 @@ def sample_counterexamples2(args, if_config):
                                     right=False, top=False, labelleft=False,
                                     labelbottom=False)
         
-        axes[2].set_title(f'Supporting examples', fontsize=25, pad=25)
+        axes[2].set_title(f'Supporting examples for machine\'s prediction', fontsize=20, pad=25)
         line = plt.Line2D((.31, .31),(.0, 1), color="k", linewidth=3)
         fig.add_artist(line)
         save_image(fig, axes, fig1, correct, i, t, imgs, labels, img_name)
